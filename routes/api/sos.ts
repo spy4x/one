@@ -1,9 +1,9 @@
 import type { Handlers } from "fresh";
 
 export const handler: Handlers = {
-  async POST(req) {
+  async POST(ctx) {
     try {
-      const { task, tasks, apiKey } = await req.json();
+      const { task, tasks, apiKey } = await ctx.req.json();
 
       if (!apiKey) {
         return new Response(

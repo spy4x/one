@@ -40,9 +40,9 @@ function extractJson(text: string): Record<string, unknown> | null {
 }
 
 export const handler: Handlers = {
-  async POST(req) {
+  async POST(ctx) {
     try {
-      const { context, apiKey } = await req.json();
+      const { context, apiKey } = await ctx.req.json();
 
       if (!apiKey) {
         return new Response(
@@ -147,10 +147,14 @@ export const handler: Handlers = {
         headers: { "Content-Type": "application/json" },
       });
     } catch (e) {
+      const detail = e instanceof Error
+        ? `${e.name}: ${e.message}${e.stack ? "\n" + e.stack.slice(0, 300) : ""}`
+        : String(e);
+      console.error("[/api/plan] error:", detail);
       return new Response(
         JSON.stringify({
-          error: "Внутренняя ошибка сервера. Попробуй ещё раз.",
-          detail: e instanceof Error ? e.message : "unknown",
+          error: "Внутренняя серверная ошибка. Попробуй ещё раз.",
+          detail,
         }),
         { status: 500, headers: { "Content-Type": "application/json" } },
       );
