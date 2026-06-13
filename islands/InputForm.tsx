@@ -33,10 +33,28 @@ export default function InputForm() {
         body: JSON.stringify({ context, apiKey }),
       });
 
-      const data = await res.json();
+      let data: Record<string, unknown>;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text().catch(() => "не удалось прочитать ответ");
+        throw new Error(
+          `Сервер вернул не JSON. ${res.status} ${text.substring(0, 200)}`,
+        );
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || "Ошибка сервера");
+        const msg =
+          (typeof data.error === "string" ? data.error : "Ошибка сервера");
+        throw new Error(
+          data.raw
+            ? `${msg} (ответ: ${String(data.raw).substring(0, 120)}…)`
+            : msg,
+        );
+      }
+
+      if (!data.tasks || !Array.isArray(data.tasks)) {
+        throw new Error("AI не создал задач. Уточни планы и попробуй снова.");
       }
 
       localStorage.setItem("tasks", JSON.stringify(data.tasks));

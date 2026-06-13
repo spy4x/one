@@ -1,5 +1,44 @@
 import type { Handlers } from "fresh";
 
+/** Try multiple strategies to extract a JSON object from AI text output */
+function extractJson(text: string): Record<string, unknown> | null {
+  const s = text.trim();
+
+  // 1 — try to parse the whole thing as JSON
+  try {
+    const parsed = JSON.parse(s);
+    if (parsed && typeof parsed === "object") return parsed;
+  } catch {
+    // not valid JSON, continue
+  }
+
+  // 2 — strip markdown code fences ```json ... ``` or ``` ... ```
+  const fenceMatch = s.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (fenceMatch) {
+    try {
+      const parsed = JSON.parse(fenceMatch[1].trim());
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch {
+      // fall through
+    }
+  }
+
+  // 3 — find the first { and last } and try that slice
+  const firstBrace = s.indexOf("{");
+  const lastBrace = s.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      const sliced = s.slice(firstBrace, lastBrace + 1);
+      const parsed = JSON.parse(sliced);
+      if (parsed && typeof parsed === "object") return parsed;
+    } catch {
+      // fall through
+    }
+  }
+
+  return null;
+}
+
 export const handler: Handlers = {
   async POST(req) {
     try {
@@ -78,17 +117,30 @@ export const handler: Handlers = {
 
       const content = data.choices?.[0]?.message?.content || "";
 
-      // Extract JSON from response (strip markdown code fences if present)
-      let jsonStr = content.trim();
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-      if (jsonMatch) {
-        jsonStr = jsonMatch[1].trim();
+      if (!content) {
+        return new Response(
+          JSON.stringify({ error: "Пустой ответ от AI. Попробуй ещё раз." }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
       }
 
-      const plan = JSON.parse(jsonStr);
+      // Extract JSON — try multiple strategies
+      const plan = extractJson(content);
+      if (!plan) {
+        return new Response(
+          JSON.stringify({
+            error: "AI вернул невалидный JSON. Попробуй ещё раз.",
+            raw: content.substring(0, 500),
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
 
       if (!plan.tasks || !Array.isArray(plan.tasks) || plan.tasks.length === 0) {
-        throw new Error("Invalid response: missing tasks array");
+        return new Response(
+          JSON.stringify({ error: "AI не создал задач. Уточни планы и попробуй снова." }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
       }
 
       return new Response(JSON.stringify(plan), {
@@ -96,11 +148,11 @@ export const handler: Handlers = {
       });
     } catch (e) {
       return new Response(
-        JSON.stringify({ error: e instanceof Error ? e.message : "Internal error" }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
+        JSON.stringify({
+          error: "Внутренняя ошибка сервера. Попробуй ещё раз.",
+          detail: e instanceof Error ? e.message : "unknown",
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
   },
