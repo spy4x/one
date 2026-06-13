@@ -1,0 +1,8 @@
+.git/
+.gitignore
+_fresh/
+node_modules/
+vendor/
+*.md
+.env
+.env.*

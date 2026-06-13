@@ -1,0 +1,36 @@
+name: theonlyone
+
+networks:
+  proxy:
+    external: true
+
+services:
+  web:
+    build: .
+    container_name: theonlyone-web
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.services.theonlyone.loadbalancer.server.port=8000"
+      - "traefik.http.routers.theonlyone.rule=Host(`one.${DOMAIN}`)"
+      - "traefik.http.routers.theonlyone.entrypoints=websecure"
+      - "traefik.http.routers.theonlyone.tls=true"
+      - "traefik.http.routers.theonlyone.tls.certresolver=myresolver"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    develop:
+      watch:
+        - action: rebuild
+          path: .
+          ignore:
+            - .git/
+            - _fresh/
+            - node_modules/
+            - "*.md"

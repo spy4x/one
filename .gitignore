@@ -1,0 +1,13 @@
+# dotenv
+.env
+.env.*
+
+# Fresh build
+_fresh/
+
+# npm
+node_modules/
+vendor/
+
+# markdown planning files
+*.md
