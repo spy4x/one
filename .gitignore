@@ -9,5 +9,7 @@ _fresh/
 node_modules/
 vendor/
 
-# markdown planning files
+# markdown planning files — but keep AGENTS.md and docs/
 *.md
+!AGENTS.md
+!docs/*.md
