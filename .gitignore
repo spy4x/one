@@ -1,6 +1,11 @@
 # dotenv
 .env
 .env.*
+!.env.age
+
+# age key (never commit)
+.age/
+key.txt
 
 # Fresh build
 _fresh/

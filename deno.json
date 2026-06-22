@@ -5,7 +5,10 @@
     "dev:deno": "deno run -A --watch=static/,routes/ dev.ts",
     "build": "vite build",
     "start": "deno serve -A _fresh/server.js",
-    "check": "deno fmt --check . && deno lint . && deno check **/*.ts"
+    "check": "deno fmt --check . && deno lint . && deno check **/*.ts",
+    "env:encrypt": "deno run -A scripts/encrypt.ts",
+    "env:decrypt": "deno run -A scripts/decrypt.ts",
+    "deploy": "deno run -A scripts/decrypt.ts && rsync -avz --delete --exclude='.git/' --exclude='node_modules/' --exclude='_fresh/' --exclude='*.md' --include='.env' --include='.env.age' --filter=':- .dockerignore' ./ homelab:~/ssd-2tb/sync/code/the-only-one/ && ssh homelab 'cd ~/ssd-2tb/sync/code/the-only-one && docker compose up -d --build'"
   },
   "lint": {
     "rules": {
